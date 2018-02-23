@@ -13,7 +13,6 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <cstdlib>
-#include <string>
 using namespace std;
 
 /*
@@ -67,9 +66,7 @@ int main() {
 	OS needs to know how much meory to allocate for the passed message
 	*/
 	int size = sizeof(msg)-sizeof(long);
-
-
-	pid_t this_pid = getpid();
+	
 	//seeds the rand() function
 	srand(time(NULL));
 	//gets a random unsigned int value [0 - 2^32] to be passed between programs
@@ -106,7 +103,6 @@ int main() {
 		//initializing message for receiver 100
 		msg.mtype = 100;
 		strcpy(msg.greeting, "Hello from Sender 997: ");
-		strcat(msg.greeting, (std::to_string(this_pid)).c_str());
 		msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
 		//initializing message for receiver 200
