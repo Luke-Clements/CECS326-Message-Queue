@@ -113,8 +113,6 @@ int main() {
 		msg.mtype = 200;
 		msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
-		cout << "got here" << endl;
-		strcpy(msg.greeting, "Hello there");
 		//will create some slowing as order is expected as important here between the two receives
 		msgrcv(qid, (struct msgbuf *)&msg, size, 101, 0);
 		cout << getpid() << ": gets message" << endl;
