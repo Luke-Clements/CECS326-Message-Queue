@@ -5,18 +5,6 @@
  *      Author: lukecjm
  */
 
-/*
-This is a simple illustration of the use of:
-	ftok, msgget, msgsnd, msgrcv
-Program B creates a message queue to be shared with Program A.
-Then, they will pass messages back and forth.
-Program A sends the first message and reads the reply. Program A
-also sends a "fake" message to the msgQ that will never be read
-by Program B.
-Both child processes use message type mtype = 113 and 114.
-//use no error handling//
-*/
-
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
@@ -25,6 +13,7 @@ Both child processes use message type mtype = 113 and 114.
 #include <unistd.h>
 #include <sys/wait.h>
 #include <cstdlib>
+#include <string>
 using namespace std;
 
 /*
@@ -59,7 +48,7 @@ int main() {
 				-> second parameter: user selected integer
 	*/
 	//qid -> an id that is internal to this program
-	int qid = msgget(ftok(".",'u'), IPC_EXCL|IPC_CREAT|0600);
+	int qid = msgget(ftok("/volumes/USBDRIVE/eclipseworkspace/",'u'), IPC_EXCL|IPC_CREAT|0600);
 
 	/*
 	holds the messages that is passed between the programs
@@ -79,6 +68,8 @@ int main() {
 	*/
 	int size = sizeof(msg)-sizeof(long);
 
+
+	pid_t this_pid = getpid();
 	//seeds the rand() function
 	srand(time(NULL));
 	//gets a random unsigned int value [0 - 2^32] to be passed between programs
@@ -114,14 +105,16 @@ int main() {
 
 		//initializing message for receiver 100
 		msg.mtype = 100;
-		strcpy(msg.greeting, "Hello from Sender 997");
-		strncat(msg.greeting, ": " + randomUInt, 12);
+		strcpy(msg.greeting, "Hello from Sender 997: ");
+		strcat(msg.greeting, (std::to_string(this_pid)).c_str());
 		msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
 		//initializing message for receiver 200
 		msg.mtype = 200;
 		msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
+		cout << "got here" << endl;
+		strcpy(msg.greeting, "Hello there");
 		//will create some slowing as order is expected as important here between the two receives
 		msgrcv(qid, (struct msgbuf *)&msg, size, 101, 0);
 		cout << getpid() << ": gets message" << endl;
