@@ -52,46 +52,36 @@ int main()
 	{
 		if(StillSending997)
 		{
-			if(0 > msgrcv(qid, (struct msgbuf *)&msg, size, 997, 0)) // reading
+			msgrcv(qid, (struct msgbuf *)&msg, size, 997, 0)
+
+			cout << getpid() << ": gets message" << endl;
+			cout << "reply: " << msg.greeting << endl;
+			cout << getpid() << ": now exits" << endl;
+			msg.mtype = 101;
+			strcpy(msg.greeting, "Goodbye from Receiver 100");
+			msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocall
+			
+			//will set the boolean to receive from the 997 sender if the message begins with 'L' 
+			//	(expected "Last hello from sender 997")
+			if(msg.greeting[0] == 'L')
 			{
-				if(errno == EINTR)
-				{
-					StillSending997 = false;
-				}
-				else
-				{
-					cout << "something else went wrong" << endl;
-				}
-			}
-			else
-			{
-				cout << getpid() << ": gets message" << endl;
-				cout << "reply: " << msg.greeting << endl;
-				cout << getpid() << ": now exits" << endl;
-				msg.mtype = 101;
-				strcpy(msg.greeting, "Goodbye from Receiver 100");
-				msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocall
+				StillSending997 = false;
 			}
 		}
 
 		if(StillSending251)
 		{
-			if(0 > msgrcv(qid, (struct msgbuf *)&msg, size, 251, 0))
+			msgrcv(qid, (struct msgbuf *)&msg, size, 251, 0)
+				
+			cout << getpid() << ": gets message" << endl;
+			cout << "reply: " << msg.greeting << endl;
+			cout << getpid() << ": now exits" << endl;
+			
+			//will set the boolean to receive from the 997 sender if the message begins with 'L' 
+			//	(expected "Last hello from sender 997")
+			if(msg.greeting[0] == 'L')
 			{
-				if(errno == EINTR)
-				{
-					StillSending251 = false;
-				}
-				else
-				{
-					cout << "something else went wrong" << endl;
-				}
-			}
-			else
-			{
-				cout << getpid() << ": gets message" << endl;
-				cout << "reply: " << msg.greeting << endl;
-				cout << getpid() << ": now exits" << endl;
+				StillSending251 = false;
 			}
 		}
 	}while(StillSending997 || StillSending251);
