@@ -5,17 +5,6 @@
  *      Author: lukecjm
  */
 
-/*
-This is a simple illustration of the use of:
-	ftok, msgget, msgsnd, msgrcv
-Program A will use a message queue created by Program B.
-Then, they will pass messages back and forth.
-Program A sends the first message and reads the reply. Program A
-also sends a "fake" message to the msgQ that will never be read
-by anyone.
-Both child processes use message type mtype = 113 and 114. (these two numbers will not be used)
-*/
-
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
@@ -56,23 +45,36 @@ int main()
 	*/
 //	cout << getpid() << ": sends greeting" << endl;
 
+	bool StillSending997 = true;
+	bool StillSending251 = true;
+
 	do
 	{
-	msgrcv(qid, (struct msgbuf *)&msg, size, 997, 0); // reading
-	cout << getpid() << ": gets message" << endl;
-	cout << "reply: " << msg.greeting << endl;
-	cout << getpid() << ": now exits" << endl;
-	msg.mtype = 101;
-	strcpy(msg.greeting, "Goodbye from Receiver 100");
-	msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocall
+		if(StillSending997)
+		{
+			msgrcv(qid, (struct msgbuf *)&msg, size, 997, 0); // reading
 
-	msgrcv(qid, (struct msgbuf *)&msg, size, 251, 0);
-	cout << getpid() << ": gets message" << endl;
-	cout << "reply: " << msg.greeting << endl;
-	cout << getpid() << ": now exits" << endl;
+			//determine if last message is the one received and then reset bool value
+			cout << getpid() << ": gets message" << endl;
+			cout << "reply: " << msg.greeting << endl;
+			cout << getpid() << ": now exits" << endl;
+			msg.mtype = 101;
+			strcpy(msg.greeting, "Goodbye from Receiver 100");
+			msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocall
+		}
+
+		if(StillSending251)
+		{
+			msgrcv(qid, (struct msgbuf *)&msg, size, 251, 0);
+
+			//determine if last message is the one received and then reset bool value
+			cout << getpid() << ": gets message" << endl;
+			cout << "reply: " << msg.greeting << endl;
+			cout << getpid() << ": now exits" << endl;
+		}
 
 	//find out how to tell when a sender stops sending
-	}while(true);
+	}while(StillSending997 || StillSending251);
 
 	exit(0);
 }
