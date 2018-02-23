@@ -27,7 +27,7 @@ int main()
 	ftok 	-> same identifier as the other program (these must match otherwise the queue will not be found)[passed parameters must be the same]
 		-> these programs must be in the same directory
 	*/
-	int qid = msgget(ftok(".",'u'), 0);
+	int qid = msgget(ftok("/volumes/USBDRIVE/eclipseworkspace/",'u'), 0);
 
 	/*
 	must be the same as other programs because the message objects in the queue are byte aligned
@@ -52,28 +52,48 @@ int main()
 	{
 		if(StillSending997)
 		{
-			msgrcv(qid, (struct msgbuf *)&msg, size, 997, 0); // reading
-
-			//determine if last message is the one received and then reset bool value
-			cout << getpid() << ": gets message" << endl;
-			cout << "reply: " << msg.greeting << endl;
-			cout << getpid() << ": now exits" << endl;
-			msg.mtype = 101;
-			strcpy(msg.greeting, "Goodbye from Receiver 100");
-			msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocall
+			if(0 > msgrcv(qid, (struct msgbuf *)&msg, size, 997, 0)) // reading
+			{
+				if(errno == EINTR)
+				{
+					StillSending997 = false;
+				}
+				else
+				{
+					cout << "something else went wrong" << endl;
+				}
+			}
+			else
+			{
+				cout << getpid() << ": gets message" << endl;
+				cout << "reply: " << msg.greeting << endl;
+				cout << getpid() << ": now exits" << endl;
+				msg.mtype = 101;
+				strcpy(msg.greeting, "Goodbye from Receiver 100");
+				msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocall
+			}
 		}
 
 		if(StillSending251)
 		{
-			msgrcv(qid, (struct msgbuf *)&msg, size, 251, 0);
-
-			//determine if last message is the one received and then reset bool value
-			cout << getpid() << ": gets message" << endl;
-			cout << "reply: " << msg.greeting << endl;
-			cout << getpid() << ": now exits" << endl;
+			if(0 > msgrcv(qid, (struct msgbuf *)&msg, size, 251, 0))
+			{
+				if(errno == EINTR)
+				{
+					StillSending251 = false;
+				}
+				else
+				{
+					cout << "something else went wrong" << endl;
+				}
+			}
+			else
+			{
+				cout << getpid() << ": gets message" << endl;
+				cout << "reply: " << msg.greeting << endl;
+				cout << getpid() << ": now exits" << endl;
+			}
 		}
-
-	//find out how to tell when a sender stops sending
 	}while(StillSending997 || StillSending251);
 
 	exit(0);
