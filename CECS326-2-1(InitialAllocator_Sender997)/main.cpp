@@ -124,6 +124,16 @@ int main() {
 			randomUInt  = UINT_MAX*rand();
 		}while(randomUInt%997 != 0 || randomUInt < 100);
 	}
+	
+	//sending last message to both receivers
+	//initializing message for receiver 100
+	msg.mtype = 100;
+	strcpy(msg.greeting, "Last hello from Sender 997: ");
+	msgsnd(qid, (struct msgbuf *)&msg, size, 0);
+
+	//initializing message for receiver 200
+	msg.mtype = 200;
+	msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
 //		/*
 //		-112 (mtype) -> looking for an mtype that is <= |-112|, which means that the message with the 111 mtype will be gathered
