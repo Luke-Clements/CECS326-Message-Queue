@@ -5,25 +5,6 @@
  *      Author: lukecjm
  */
 
-/*
- * main.cpp
- *
- *  Created on: Feb 15, 2018
- *      Author: lukecjm
- */
-
-/*
-This is a simple illustration of the use of:
-	ftok, msgget, msgsnd, msgrcv
-Program B creates a message queue to be shared with Program A.
-Then, they will pass messages back and forth.
-Program A sends the first message and reads the reply. Program A
-also sends a "fake" message to the msgQ that will never be read
-by Program B.
-Both child processes use message type mtype = 113 and 114.
-//use no error handling//
-*/
-
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
@@ -35,10 +16,11 @@ Both child processes use message type mtype = 113 and 114.
 using namespace std;
 
 /*
- * Sender does not accept any ack message. The 251 sender only reports its event
-to one receiver & terminates on a 'kill' command from a separate terminal.
+ * First, the 997 sender sends each event to all receivers and
+requires acknowledgement for each message from both receivers before it continues
+execution. Also, this sender terminates when it gets/observes a random number smaller
+than 100.
  */
-
 int main() {
 
 	// create my msgQ with key value from ftok()
@@ -65,7 +47,7 @@ int main() {
 				-> second parameter: user selected integer
 	*/
 	//qid -> an id that is internal to this program
-	int qid = msgget(ftok(".",'u'), 0);
+	int qid = msgget(ftok("/volumes/USBDRIVE/eclipseworkspace/",'u'), IPC_EXCL|IPC_CREAT|0600);
 
 	/*
 	holds the messages that is passed between the programs
@@ -81,7 +63,7 @@ int main() {
 
 	/*
 	Calculate the size of the message
-	OS needs to know how much memory to allocate for the passed message
+	OS needs to know how much meory to allocate for the passed message
 	*/
 	int size = sizeof(msg)-sizeof(long);
 
@@ -89,16 +71,15 @@ int main() {
 	srand(time(NULL));
 	//gets a random unsigned int value [0 - 2^32] to be passed between programs
 	unsigned int randomUInt;
-	bool notKill;
 
+	//get a random unsigned integer value that is divisible by 997
 	do
 	{
-		//get a random unsigned integer value that is divisible by 251
-		do
-		{
-			randomUInt  = UINT_MAX*rand();
-		}while(randomUInt%251 != 0);
+		randomUInt  = UINT_MAX*rand();
+	}while(randomUInt%997 != 0 || randomUInt < 100);
 
+	while(randomUInt >= 100)
+	{
 		/*
 		Used by this program to receive a message
 		each receive removes one message from the queue if successful
@@ -121,14 +102,38 @@ int main() {
 
 		//initializing message for receiver 100
 		msg.mtype = 100;
-		strcpy(msg.greeting, "Hello from Sender 251");
-		strncat(msg.greeting, ": " + randomUInt, 12);
+		strcpy(msg.greeting, "Hello from Sender 997: ");
 		msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
-		randomUInt = UINT_MAX*rand();
-		//get user input here
-		notKill = false;
-	} while(notKill);
+		//initializing message for receiver 200
+		msg.mtype = 200;
+		msgsnd(qid, (struct msgbuf *)&msg, size, 0);
+
+		//will create some slowing as order is expected as important here between the two receives
+		msgrcv(qid, (struct msgbuf *)&msg, size, 101, 0);
+		cout << getpid() << ": gets message" << endl;
+		cout << "message: " << msg.greeting << endl;
+
+		msgrcv(qid, (struct msgbuf *)&msg, size, 201, 0);
+		cout << getpid() << ": gets message" << endl;
+		cout << "message: " << msg.greeting << endl;
+
+		//get a random unsigned integer value that is divisible by 997
+		do
+		{
+			randomUInt  = UINT_MAX*rand();
+		}while(randomUInt%997 != 0 || randomUInt < 100);
+	}
+
+	//sending last message to both receivers
+	//initializing message for receiver 100
+	msg.mtype = 100;
+	strcpy(msg.greeting, "Last hello from Sender 997: ");
+	msgsnd(qid, (struct msgbuf *)&msg, size, 0);
+
+	//initializing message for receiver 200
+	msg.mtype = 200;
+	msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
 //		/*
 //		-112 (mtype) -> looking for an mtype that is <= |-112|, which means that the message with the 111 mtype will be gathered
