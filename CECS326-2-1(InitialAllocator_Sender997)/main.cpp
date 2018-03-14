@@ -13,6 +13,8 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <cstdlib>
+#include <cstdio>
+#include <limits.h>
 using namespace std;
 
 /*
@@ -24,7 +26,7 @@ than 100.
 int main() {
 
 	//initializes the queue
-	int qid = msgget(ftok("/volumes/USBDRIVE/eclipseworkspace/",'u'), IPC_EXCL|IPC_CREAT|0600);
+	int qid = msgget(ftok("/Desktop/CECS326-Message-Queue-master/",'u'), IPC_EXCL|IPC_CREAT|0600);
 
 	// declare my message buffer
 	struct buf {
@@ -33,6 +35,11 @@ int main() {
 	};
 
 	buf msg;
+	char tempValue[9];
+
+	//holds info about the queue for when this program removes the queue
+	//	(used for the number of messages in the queue)
+	msqid_ds * queueInfo;
 
 	int size = sizeof(msg)-sizeof(long);
 
@@ -42,34 +49,40 @@ int main() {
 	//seeds the rand() function
 	srand(time(NULL));
 	//gets a random unsigned int value [0 - 2^32] to be passed between programs
-	unsigned int randomUInt;
+	int randomUInt;
 
 	//get a random unsigned integer value that is divisible by 997
 	do
 	{
-		randomUInt  = UINT_MAX*rand();
+		randomUInt  = INT_MAX*rand();
 	}while(randomUInt%997 != 0 || randomUInt < 100);
 
 	while(randomUInt >= 100)
 	{
+		cout << "997Active: " << randomUInt << endl;
+		sprintf(tempValue, "%d", randomUInt);
 		strcpy(msg.greeting, "Hello from Sender 997: ");
-		strcat(msg.greeting, (char *)(randomUInt%997));
+		strcat(msg.greeting, tempValue);
 		//initializing message for receiver 100
 		msg.mtype = 997;
 		msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
+		cout << "997 sent successfully" << endl;
 		msgrcv(qid, (struct msgbuf *)&msg, size, 101, 0);
+		cout << getpid() << ", Sender 997 receiving: " << msg.greeting << endl;
 
 		if(stillReceiving200)
 		{
 			//initializing message for receiver 200
 			msg.mtype = 997;
+			sprintf(tempValue, "%d", randomUInt);
 			strcpy(msg.greeting, "Hello from Sender 997: ");
-			strcat(msg.greeting, (char *)(randomUInt%997));
+			strcat(msg.greeting, tempValue);
 			msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
 			//will create some slowing as order is expected as important here between the two receives
 			msgrcv(qid, (struct msgbuf *)&msg, size, 201, 0);
+			cout << getpid() << ", Sender 997 receiving2: " << msg.greeting << endl;
 
 			if(msg.greeting[0] == 'L')
 			{
@@ -80,9 +93,10 @@ int main() {
 		//get a random unsigned integer value that is divisible by 997
 		do
 		{
-			randomUInt  = UINT_MAX*rand();
+			randomUInt = INT_MAX*rand();
 		}while(randomUInt%997 != 0 || randomUInt < 100);
 	}
+	cout << "997NotActive\n";
 
 	strcpy(msg.greeting, "Last hello from Sender 997");
 
@@ -97,8 +111,30 @@ int main() {
 		msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 	}
 
-	//sending termination message to closer program (sender 251)
-	msg.mtype = 998;
-	msgsnd(qid, (struct msgbuf *)&msg, size, 0);
+	//waits for last message to be sent by 251 sender
+	msgrcv(qid, (struct msgbuf *)&msg, size, 252, 0);
+
+	//waits for last message to be sent by 257 sender
+	msgrcv(qid, (struct msgbuf *)&msg, size, 258, 0);
+
+	//waits for last message to be sent by 100 receiver
+	msgrcv(qid, (struct msgbuf *)&msg, size, 103, 0);
+
+	//waits for last message to be sent by 200 receiver
+	msgrcv(qid, (struct msgbuf *)&msg, size, 203, 0);
+
+	msgctl(qid, IPC_STAT, queueInfo);
+
+	cout << queueInfo->msg_qnum << endl;
+	//will empty the queue
+	while(queueInfo->msg_qnum > 0)
+	{
+		msgrcv(qid, (struct msgbuf *)&msg, size, 0, 0);
+	}
+
+	cout << queueInfo->msg_qnum << endl;
+
+	//removes the queue
+	msgctl(qid, IPC_RMID, NULL);
 	exit(0);
 }
