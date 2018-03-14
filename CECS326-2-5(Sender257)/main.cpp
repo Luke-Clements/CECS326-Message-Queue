@@ -43,9 +43,6 @@ int main() {
 	//gets a random unsigned int value [0 - 2^32] to be passed between programs
 	int randomUInt;
 
-	//indicates if this sender should continue sending messages to the receiver
-	bool StillReceiving200 = true;
-
 	do
 	{
 		//get a random unsigned integer value that is divisible by 10
@@ -57,21 +54,14 @@ int main() {
 		cout << "257Active: " << randomUInt << endl;
 
 		//initializing message for receiver 200
-		msg.mtype = 257;
+		msg.mtype = 199;
 		sprintf(tempValue, "%d", randomUInt);
 		strcpy(msg.greeting, "Hello from Sender 257: ");
 		strcat(msg.greeting, tempValue);
 		msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
 		msgrcv(qid, (struct msgbuf *)&msg, size, 202, 0);
-
-		//will set the boolean to receive from the 997 sender if the message begins with 'L'
-		//	(expected "Last hello from sender 997")
-		if(msg.greeting[0] == 'L')
-		{
-			StillReceiving200 = false;
-		}
-	} while(StillReceiving200);
+	} while(msg.greeting[0] != 'L');
 	cout << "257NotActive\n";
 
 	//empties the one extra message sent from this sender before exiting since its receiver has terminated
