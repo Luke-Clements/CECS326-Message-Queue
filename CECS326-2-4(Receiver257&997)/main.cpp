@@ -39,53 +39,36 @@ int main()
 
 	do
 	{
-		if(StillSending997)
+		msgrcv(qid, (struct msgbuf *)&msg, size, 199, 0);
+
+		cout << getpid() << ", Receiver 200 gets message: " << msg.greeting << endl;
+
+		if(msg.greeting[0] == '9')
 		{
-			msgrcv(qid, (struct msgbuf *)&msg, size, 997, 0);
-
-			cout << getpid() << ", Receiver 200 gets message: " << msg.greeting << endl;
-
-			//will set the boolean to receive from the 997 sender if the message begins with 'L'
-			//	(expected "Last hello from sender 997")
-			if(msg.greeting[0] == 'L')
-			{
-				StillSending997 = false;
-			}
-
-			//putting this here instead of above will ensure that no extra ack
-			//	messages are sent back to sender 997 after it has terminated
-			if(StillSending997)
-			{
-				msg.mtype = 201;
-				strcpy(msg.greeting, "Goodbye from Receiver 200");
-				msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocol
-			}
-			messageCount++;
+			cout << "herebacon: " << messageCount << endl;
+			msg.mtype = 201;
+			strcpy(msg.greeting, "Goodbye from Receiver 200");
+			msgsnd(qid, (struct msgbuf *) &msg, size, 0);
 		}
-
-		msgrcv(qid, (struct msgbuf *)&msg, size, 257, 0);
-
-		cout << getpid() << ", Receiver 200 gets message2: " << msg.greeting << endl;
-		msg.mtype = 202;
-		strcpy(msg.greeting, "Goodbye from Receiver 200");
-		msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocol
+		else
+		{
+			cout << "herebacon2: " << messageCount << endl;
+			msg.mtype = 202;
+			strcpy(msg.greeting, "Goodbye from Receiver 200");
+			msgsnd(qid, (struct msgbuf *) &msg, size, 0);
+		}
 
 		messageCount++;
 	}while(messageCount < 5000);
 
-	//removes the excess received message from sender 997 if this receiver terminates before sender 997
-	if(StillSending997)
-	{
-		msgrcv(qid, (struct msgbuf *)&msg, size, 997, 0);
-	}
-
-	//termination notification sent to sender 997
-	msg.mtype = 203;
 	strcpy(msg.greeting, "Last goodbye from Receiver 200");
-	msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocol
 
 	//termination notification sent to sender 257
 	msg.mtype = 202;
+	msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocol
+
+	//termination notification sent to sender 997
+	msg.mtype = 203;
 	msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocol
 
 	exit(0);
