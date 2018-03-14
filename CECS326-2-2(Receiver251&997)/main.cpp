@@ -34,51 +34,29 @@ int main()
 	int size = sizeof(msg)-sizeof(long);
 
 	//indicates if the sending programs are still reporting events
-	bool StillSending997 = true;
-	bool StillSending251 = true;
+	int countOfTerminations = 0;
 
 	do
 	{
-		if(StillSending997)
+		msgrcv(qid, (struct msgbuf *)&msg, size, 99, 0);
+
+		cout << getpid() << ", Receiver 100 gets message2: " << msg.greeting << endl;
+
+		if(msg.greeting[0] == '9')
 		{
-			msgrcv(qid, (struct msgbuf *)&msg, size, 997, 0);
-
-			cout << getpid() << ", Receiver 100 gets message: " << msg.greeting << endl;
-
-			//will set the boolean to receive from the 997 sender if the message begins with 'L'
-			//	(expected "Last hello from sender 997")
-			if(msg.greeting[0] == 'L')
-			{
-				StillSending997 = false;
-			}
-
-			//putting this here instead of above will ensure that no extra ack
-			//	messages are sent back to sender 997 after it has terminated
-			if(StillSending997)
-			{
-				strcpy(msg.greeting, "Goodbye from Receiver 100");
-				msg.mtype = 101;
-				msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocol
-			}
-		}
-
-		if(StillSending251)
-		{
-			msgrcv(qid, (struct msgbuf *)&msg, size, 251, 0);
-
-			cout << getpid() << ", Receiver 100 gets message2: " << msg.greeting << endl;
-
+			cout << "here" << endl;
+			msg.mtype = 101;
 			strcpy(msg.greeting, "Goodbye from Receiver 100");
-			msg.mtype = 106;
-
-			//will set the boolean to receive from the 997 sender if the message begins with 'L'
-			//	(expected "Last hello from sender 997")
-			if(msg.greeting[0] == 'L')
-			{
-				StillSending251 = false;
-			}
+			msgsnd(qid, (struct msgbuf *) &msg, size, 0);
 		}
-	}while(StillSending997 || StillSending251);
+
+		//will set the boolean to receive from the 997 sender if the message begins with 'L'
+		//	(expected "Last hello from sender 997")
+		if(msg.greeting[0] == 'L')
+		{
+			countOfTerminations ++;
+		}
+	}while(countOfTerminations < 2);
 
 	//notifies sender 997 of termination
 	msg.mtype = 103;
