@@ -61,10 +61,10 @@ int main() {
 	{
 		cout << "997Active: " << randomUInt << endl;
 		sprintf(tempValue, "%d", randomUInt);
-		strcpy(msg.greeting, "Hello from Sender 997: ");
+		strcpy(msg.greeting, "997 says hello: ");
 		strcat(msg.greeting, tempValue);
 		//initializing message for receiver 100
-		msg.mtype = 997;
+		msg.mtype = 99;
 		msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
 		cout << "997 sent successfully" << endl;
@@ -74,9 +74,9 @@ int main() {
 		if(stillReceiving200)
 		{
 			//initializing message for receiver 200
-			msg.mtype = 997;
+			msg.mtype = 199;
 			sprintf(tempValue, "%d", randomUInt);
-			strcpy(msg.greeting, "Hello from Sender 997: ");
+			strcpy(msg.greeting, "997 says hello: ");
 			strcat(msg.greeting, tempValue);
 			msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
@@ -86,7 +86,11 @@ int main() {
 
 			if(msg.greeting[0] == 'L')
 			{
+				cout << "nothere" << endl;
 				stillReceiving200 = false;
+				//msg.mtype = 201;
+				//strcopy(msg.greeting, "Last 251 message received");
+				//msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 			}
 		}
 
