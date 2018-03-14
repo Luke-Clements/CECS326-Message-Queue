@@ -23,7 +23,7 @@ Leaves no extra messages in the queue
  */
 int main()
 {
-	int qid = msgget(ftok("/volumes/USBDRIVE/eclipseworkspace/",'u'), 0);
+	int qid = msgget(ftok("/Desktop/CECS326-Message-Queue-master/",'u'), 0);
 
 	// declare my message buffer
 	struct buf {
@@ -43,7 +43,7 @@ int main()
 		{
 			msgrcv(qid, (struct msgbuf *)&msg, size, 997, 0);
 
-			cout << "Receiver 200 gets message: " << msg.greeting << endl;
+			cout << getpid() << ", Receiver 200 gets message: " << msg.greeting << endl;
 
 			//will set the boolean to receive from the 997 sender if the message begins with 'L'
 			//	(expected "Last hello from sender 997")
@@ -63,9 +63,9 @@ int main()
 			messageCount++;
 		}
 
-		msgrcv(qid, (struct msgbuf *)&msg, size, 251, 0);
+		msgrcv(qid, (struct msgbuf *)&msg, size, 257, 0);
 
-		cout << "Receiver 200 gets message: " << msg.greeting << endl;
+		cout << getpid() << ", Receiver 200 gets message2: " << msg.greeting << endl;
 		msg.mtype = 202;
 		strcpy(msg.greeting, "Goodbye from Receiver 200");
 		msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocol
@@ -80,16 +80,12 @@ int main()
 	}
 
 	//termination notification sent to sender 997
-	msg.mtype = 201;
+	msg.mtype = 203;
 	strcpy(msg.greeting, "Last goodbye from Receiver 200");
 	msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocol
 
 	//termination notification sent to sender 257
 	msg.mtype = 202;
-	msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocol
-
-	//termination notification sent to sender 251
-	msg.mtype = 203;
 	msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocol
 
 	exit(0);
