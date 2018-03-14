@@ -35,6 +35,10 @@ int main() {
 		char greeting[50]; // mesg content
 	};
 
+	//holds info about the queue for when this program removes the queue
+	//	(used for the number of messages in the queue)
+	msqid_ds * queueInfo = new msqid_ds;
+
 	buf msg;
 	char tempValue[9];
 
@@ -56,7 +60,7 @@ int main() {
 	int randomUInt;
 
 	//initializing message for receiver 100
-	msg.mtype = 251;
+	msg.mtype = 99;
 
 	do
 	{
@@ -65,14 +69,13 @@ int main() {
 		{
 			randomUInt  = INT_MAX*rand();
 		}while(randomUInt%251 != 0);
-		cout << "251Active: " << randomUInt << " " << getpid() << endl;
 
 		sprintf(tempValue, "%d", randomUInt);
 		strcpy(msg.greeting, "Hello from Sender 251: ");
 		strcat(msg.greeting, tempValue);
-		msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
-		cout << "gothere" << endl;
+		cout << getpid() << ": message sent 251" << endl;
+		msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
 	} while(true);
 	cout << "251NotActive\n";
