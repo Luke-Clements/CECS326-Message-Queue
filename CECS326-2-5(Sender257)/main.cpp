@@ -24,10 +24,8 @@ receiver stops receiving event notification.
 
 int main() {
 	//qid -> an id that is internal to this program
-	int qid = msgget(ftok("/Desktop/CECS326-Message-Queue-master/",'u'), 0);
-	
-	static char initialMessage[] = "Hello from Sender 257: ";
-	char* tempMessage;
+	int qid = msgget(ftok("/Desktop/a/",'u'), 0);
+
 	// declare my message buffer
 	struct buf {
 		long mtype; // required long datatype, and required to be first
@@ -41,31 +39,27 @@ int main() {
 	//seeds the rand() function
 	srand(time(NULL));
 	//gets a random unsigned int value [0 - 2^32] to be passed between programs
-	int randomUInt;
+	unsigned int randomUInt;
 
 	do
 	{
 		//get a random unsigned integer value that is divisible by 10
 		do
 		{
-			randomUInt  = INT_MAX*rand();
+			randomUInt  = UINT_MAX*rand();
 		}while(randomUInt%257 != 0);
 
-		cout << "257Active: " << randomUInt << endl;
+		cout << "251 sends: " << randomUInt << endl;
 
 		//initializing message for receiver 200
 		msg.mtype = 199;
-		sprintf(tempValue, "%d", randomUInt);
-		strcpy(msg.greeting, "Hello from Sender 257: ");
+		sprintf(tempValue, "%u", randomUInt);
+		strcpy(msg.greeting, "257 says hello: ");
 		strcat(msg.greeting, tempValue);
 		msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
 		msgrcv(qid, (struct msgbuf *)&msg, size, 202, 0);
 	} while(msg.greeting[0] != 'L');
-	cout << "257NotActive\n";
-
-	//empties the one extra message sent from this sender before exiting since its receiver has terminated
-	msgrcv(qid, (struct msgbuf *)&msg, size, 257, 0);
 
 	//send a message to the closing program (sender 997) that sender 257 has terminated
 	msg.mtype = 258;
