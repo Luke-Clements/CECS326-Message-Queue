@@ -13,65 +13,61 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <cstdlib>
-#include <cstdio>
-#include "get_info.h"
-#include <limits.h>
 using namespace std;
 
 /*
- * Sender does not accept any ack message. The 251 sender only reports its event
-to one receiver & terminates on a 'kill' command from a separate terminal.
+ * Each receiver repeatedly gets a message & displays the value and sender's identity. The
+first receiver accepts messages from 251 & 997 senders. This receiver only terminates
+after both of its senders had terminated.
+Leaves no messages in the queue
  */
-int main() {
-	//qid -> an id that is internal to this program
+int main()
+{
 	int qid = msgget(ftok("/Desktop/a/",'u'), 0);
 
 	// declare my message buffer
 	struct buf {
-		long mtype; // required long datatype, and required to be first
+		long mtype; // required
 		char greeting[50]; // mesg content
 	};
-
 	buf msg;
-	char tempValue[9];
-
-	/*
-	Calculate the size of the message
-	OS needs to know how much memory to allocate for the passed message
-	*/
 	int size = sizeof(msg)-sizeof(long);
 
-	strcpy(msg.greeting, "251 Last message sent");
-	msg.mtype = 99;
-	get_info(qid, (struct msgbuf *)&msg, size, 99);
-
-	cout << getpid() << endl;
-
-	//seeds the rand() function
-	srand(time(NULL));
-	//gets a random unsigned int value [0 - 2^32] to be passed between programs
-	unsigned int randomUInt;
+	//indicates if the sending programs are still reporting events
+	int countOfTerminations = 0;
 
 	do
 	{
-		//get a random unsigned integer value that is divisible by 251
-		do
-		{
-			randomUInt  = UINT_MAX*rand();
-		}while(randomUInt%251 != 0);
-
 		msg.mtype = 99;
-		sprintf(tempValue, "%u", randomUInt);
-		strcpy(msg.greeting, "251 says hello: ");
-		strcat(msg.greeting, tempValue);
+		msgrcv(qid, (struct msgbuf *)&msg, size, 99, 0);
 
-		cout << "251(" << getpid() << ")sends: " << tempValue << endl;
-		msgsnd(qid, (struct msgbuf *)&msg, size, 0);
+		cout << "Receiver 100 gets message: " << msg.greeting << endl;
 
-		//can't get it to run without receiving an acknowledgement :(
-		msgrcv(qid, (struct msgbuf *)&msg, size, 102, 0);
+		//will increment the count to determine if this receiver can terminate
+		//	(expected "*** Last hello from sender")
+		if(msg.greeting[4] == 'L')
+		{
+			countOfTerminations ++;
+		}
 
-	} while(true);
+		if(msg.greeting[0] == '9')
+		{
+			msg.mtype = 101;
+			strcpy(msg.greeting, "Goodbye from Receiver 100");
+			msgsnd(qid, (struct msgbuf *)&msg, size, 0);
+		}
+		else
+		{
+			msg.mtype = 102;
+			strcpy(msg.greeting, "Goodbye from Receiver 100");
+			msgsnd(qid, (struct msgbuf *)&msg, size, 0);
+		}
+	}while(countOfTerminations < 2);
+
+	//notifies sender 997 of termination
+	msg.mtype = 103;
+	strcpy(msg.greeting, "Last goodbye from Receiver 100");
+	msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocol
 
 	exit(0);
 }
