@@ -5,7 +5,6 @@
  *      Author: lukecjm
  */
 
-#include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <cstring>
@@ -26,7 +25,7 @@ than 100.
 int main() {
 
 	//initializes the queue
-	int qid = msgget(ftok("/Desktop/CECS326-Message-Queue-master/",'u'), IPC_EXCL|IPC_CREAT|0600);
+	int qid = msgget(ftok("/Desktop/a/",'u'), IPC_EXCL|IPC_CREAT|0600);
 
 	// declare my message buffer
 	struct buf {
@@ -39,7 +38,7 @@ int main() {
 
 	//holds info about the queue for when this program removes the queue
 	//	(used for the number of messages in the queue)
-	msqid_ds * queueInfo;
+	struct msqid_ds queueInfo;
 
 	int size = sizeof(msg)-sizeof(long);
 
@@ -49,74 +48,63 @@ int main() {
 	//seeds the rand() function
 	srand(time(NULL));
 	//gets a random unsigned int value [0 - 2^32] to be passed between programs
-	int randomUInt;
+	unsigned int randomUInt;
 
 	//get a random unsigned integer value that is divisible by 997
 	do
 	{
-		randomUInt  = INT_MAX*rand();
-	}while(randomUInt%997 != 0 || randomUInt < 100);
+		randomUInt  = UINT_MAX*rand();
+	}while(randomUInt%997 != 0);
 
 	while(randomUInt >= 100)
 	{
-		cout << "997Active: " << randomUInt << endl;
-		sprintf(tempValue, "%d", randomUInt);
+		sprintf(tempValue, "%u", randomUInt);
 		strcpy(msg.greeting, "997 says hello: ");
 		strcat(msg.greeting, tempValue);
 		//initializing message for receiver 100
 		msg.mtype = 99;
 		msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
-		cout << "997 sent successfully" << endl;
 		msgrcv(qid, (struct msgbuf *)&msg, size, 101, 0);
-		cout << getpid() << ", Sender 997 receiving: " << msg.greeting << endl;
+		cout << "Sender 997 Receives: " << msg.greeting << endl;
 
 		if(stillReceiving200)
 		{
 			//initializing message for receiver 200
 			msg.mtype = 199;
-			sprintf(tempValue, "%d", randomUInt);
+			sprintf(tempValue, "%u", randomUInt);
 			strcpy(msg.greeting, "997 says hello: ");
 			strcat(msg.greeting, tempValue);
 			msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
-			//will create some slowing as order is expected as important here between the two receives
 			msgrcv(qid, (struct msgbuf *)&msg, size, 201, 0);
-			cout << getpid() << ", Sender 997 receiving2: " << msg.greeting << endl;
+			cout << "Sender 997 Receives: " << msg.greeting << endl;
 
 			if(msg.greeting[0] == 'L')
 			{
-				cout << "nothere" << endl;
 				stillReceiving200 = false;
-				//msg.mtype = 201;
-				//strcopy(msg.greeting, "Last 251 message received");
-				//msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 			}
 		}
 
-		//get a random unsigned integer value that is divisible by 997
+		//get a random integer value that is divisible by 997
 		do
 		{
-			randomUInt = INT_MAX*rand();
-		}while(randomUInt%997 != 0 || randomUInt < 100);
+			randomUInt = UINT_MAX*rand();
+		}while(randomUInt%997 != 0);
 	}
-	cout << "997NotActive\n";
 
-	strcpy(msg.greeting, "Last hello from Sender 997");
+	strcpy(msg.greeting, "997 Last hello from sender");
 
 	//initializing message for receiver 100
-	msg.mtype = 997;
+	msg.mtype = 99;
 	msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 
 	if(stillReceiving200)
 	{
 		//initializing message for receiver 200
-		msg.mtype = 997;
+		msg.mtype = 199;
 		msgsnd(qid, (struct msgbuf *)&msg, size, 0);
 	}
-
-	//waits for last message to be sent by 251 sender
-	msgrcv(qid, (struct msgbuf *)&msg, size, 252, 0);
 
 	//waits for last message to be sent by 257 sender
 	msgrcv(qid, (struct msgbuf *)&msg, size, 258, 0);
@@ -127,16 +115,15 @@ int main() {
 	//waits for last message to be sent by 200 receiver
 	msgrcv(qid, (struct msgbuf *)&msg, size, 203, 0);
 
-	msgctl(qid, IPC_STAT, queueInfo);
+	//sets up to receive info about the length of the queue's leftover messages for removal
+	msgctl(qid, IPC_STAT, &queueInfo);
 
-	cout << queueInfo->msg_qnum << endl;
 	//will empty the queue
-	while(queueInfo->msg_qnum > 0)
+	while(queueInfo.msg_qnum > 0)
 	{
 		msgrcv(qid, (struct msgbuf *)&msg, size, 0, 0);
+		msgctl(qid, IPC_STAT, &queueInfo);
 	}
-
-	cout << queueInfo->msg_qnum << endl;
 
 	//removes the queue
 	msgctl(qid, IPC_RMID, NULL);
