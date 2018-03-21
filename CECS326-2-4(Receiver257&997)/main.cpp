@@ -23,7 +23,7 @@ Leaves no extra messages in the queue
  */
 int main()
 {
-	int qid = msgget(ftok("/Desktop/CECS326-Message-Queue-master/",'u'), 0);
+	int qid = msgget(ftok("/Desktop/a/",'u'), 0);
 
 	// declare my message buffer
 	struct buf {
@@ -41,18 +41,20 @@ int main()
 	{
 		msgrcv(qid, (struct msgbuf *)&msg, size, 199, 0);
 
-		cout << getpid() << ", Receiver 200 gets message: " << msg.greeting << endl;
+		cout << "Receiver 200 gets message: " << msg.greeting << endl;
 
 		if(msg.greeting[0] == '9')
 		{
-			cout << "herebacon: " << messageCount << endl;
+			if(msg.greeting[4] == 'L')
+			{
+				StillSending997 = false;
+			}
 			msg.mtype = 201;
 			strcpy(msg.greeting, "Goodbye from Receiver 200");
 			msgsnd(qid, (struct msgbuf *) &msg, size, 0);
 		}
 		else
 		{
-			cout << "herebacon2: " << messageCount << endl;
 			msg.mtype = 202;
 			strcpy(msg.greeting, "Goodbye from Receiver 200");
 			msgsnd(qid, (struct msgbuf *) &msg, size, 0);
@@ -61,15 +63,20 @@ int main()
 		messageCount++;
 	}while(messageCount < 5000);
 
+	//end loop notification sent to sender 997 to stop messages being sent here
+	msg.mtype = 201;
 	strcpy(msg.greeting, "Last goodbye from Receiver 200");
+	msgsnd (qid, (struct msgbuf *)&msg, size, 0);
 
 	//termination notification sent to sender 257
 	msg.mtype = 202;
 	msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocol
 
-	//termination notification sent to sender 997
-	msg.mtype = 203;
-	msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocol
-
+	if(StillSending997)
+	{
+		//termination notification sent to sender 997
+		msg.mtype = 203;
+		msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocol
+	}
 	exit(0);
 }
