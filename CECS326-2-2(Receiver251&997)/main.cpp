@@ -13,55 +13,65 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <cstdlib>
+#include <cstdio>
+#include "get_info.h"
+#include <limits.h>
 using namespace std;
 
 /*
- * Each receiver repeatedly gets a message & displays the value and sender's identity. The
-first receiver accepts messages from 251 & 997 senders. This receiver only terminates
-after both of its senders had terminated.
-Leaves no messages in the queue
+ * Sender does not accept any ack message. The 251 sender only reports its event
+to one receiver & terminates on a 'kill' command from a separate terminal.
  */
-int main()
-{
-	int qid = msgget(ftok("/Desktop/CECS326-Message-Queue-master/",'u'), 0);
+int main() {
+	//qid -> an id that is internal to this program
+	int qid = msgget(ftok("/Desktop/a/",'u'), 0);
 
 	// declare my message buffer
 	struct buf {
-		long mtype; // required
+		long mtype; // required long datatype, and required to be first
 		char greeting[50]; // mesg content
 	};
+
 	buf msg;
+	char tempValue[9];
+
+	/*
+	Calculate the size of the message
+	OS needs to know how much memory to allocate for the passed message
+	*/
 	int size = sizeof(msg)-sizeof(long);
 
-	//indicates if the sending programs are still reporting events
-	int countOfTerminations = 0;
+	strcpy(msg.greeting, "251 Last message sent");
+	msg.mtype = 99;
+	get_info(qid, (struct msgbuf *)&msg, size, 99);
+
+	cout << getpid() << endl;
+
+	//seeds the rand() function
+	srand(time(NULL));
+	//gets a random unsigned int value [0 - 2^32] to be passed between programs
+	unsigned int randomUInt;
 
 	do
 	{
-		msgrcv(qid, (struct msgbuf *)&msg, size, 99, 0);
-
-		cout << getpid() << ", Receiver 100 gets message2: " << msg.greeting << endl;
-
-		if(msg.greeting[0] == '9')
+		//get a random unsigned integer value that is divisible by 251
+		do
 		{
-			cout << "here" << endl;
-			msg.mtype = 101;
-			strcpy(msg.greeting, "Goodbye from Receiver 100");
-			msgsnd(qid, (struct msgbuf *) &msg, size, 0);
-		}
+			randomUInt  = UINT_MAX*rand();
+		}while(randomUInt%251 != 0);
 
-		//will set the boolean to receive from the 997 sender if the message begins with 'L'
-		//	(expected "Last hello from sender 997")
-		if(msg.greeting[0] == 'L')
-		{
-			countOfTerminations ++;
-		}
-	}while(countOfTerminations < 2);
+		msg.mtype = 99;
+		sprintf(tempValue, "%u", randomUInt);
+		strcpy(msg.greeting, "251 says hello: ");
+		strcat(msg.greeting, tempValue);
 
-	//notifies sender 997 of termination
-	msg.mtype = 103;
-	strcpy(msg.greeting, "Last goodbye from Receiver 100");
-	msgsnd (qid, (struct msgbuf *)&msg, size, 0); //exit protocol
+		cout << "251(" << getpid() << ")sends: " << tempValue << endl;
+		msgsnd(qid, (struct msgbuf *)&msg, size, 0);
+
+		//can't get it to run without receiving an acknowledgement :(
+		msgrcv(qid, (struct msgbuf *)&msg, size, 102, 0);
+
+	} while(true);
 
 	exit(0);
 }
